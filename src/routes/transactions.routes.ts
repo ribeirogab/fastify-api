@@ -16,6 +16,15 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
     return { transactions };
   });
 
+  // List summary
+  app.get('/summary', async () => {
+    const summary = await database('transactions')
+      .sum('amount', { as: 'amount' })
+      .first();
+
+    return { summary };
+  });
+
   // List by id
   app.get('/:id', async (request) => {
     const { id } = listTransactionParamsSchema.parse(request.params);
