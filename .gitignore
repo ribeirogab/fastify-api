@@ -1,3 +1,6 @@
-!.gitkeep
+.env*
 node_modules
 database/tmp.db
+
+!.gitkeep
+!.env.example
