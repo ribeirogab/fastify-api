@@ -1,13 +1,11 @@
 import 'dotenv/config';
 import { get } from 'env-var';
 
-const nodeEnvs = ['production', 'development'] as const;
-const stages = ['local', 'dev', 'prod'] as const;
-
 export const env = {
-  NODE_ENV: get('NODE_ENV').required().asEnum(nodeEnvs),
-  STAGE: get('STAGE').required().asEnum(stages),
+  NODE_ENV: get('NODE_ENV').required().asEnum(['production', 'development']),
+  STAGE: get('STAGE').required().asEnum(['local', 'dev', 'prod']),
+  PORT: get('PORT').default(3333).asPortNumber(),
 
-  DATABASE_PROVIDER: get('DATABASE_PROVIDER').required().asString(),
+  DATABASE_CLIENT: get('DATABASE_CLIENT').required().asEnum(['sqlite', 'pg']),
   DATABASE_URL: get('DATABASE_URL').required().asString(),
 };
