@@ -41,7 +41,7 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
   app.get(
     '/:id',
     { preHandler: [checkSessionIdExistsMiddleware] },
-    async (request) => {
+    async (request, reply) => {
       const { id } = listTransactionParamsSchema.parse(request.params);
       const { sessionId } = request.cookies;
 
@@ -49,6 +49,10 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
         .select('*')
         .where({ id, session_id: sessionId })
         .first();
+
+      if (!transaction) {
+        return reply.status(404).send('Transaction not found');
+      }
 
       return { transaction };
     },
