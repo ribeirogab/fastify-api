@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { FastifyInstance } from 'fastify';
 
 import { database } from '../database';
+import { checkSessionIdExistsMiddleware } from '../middlewares';
 import {
   createTransactionBodySchema,
   listTransactionParamsSchema,
@@ -10,45 +11,61 @@ import {
 
 export const transactionsRoutes = async (app: FastifyInstance) => {
   // List all
-  app.get('/', async () => {
-    const transactions = await database('transactions').select('*');
+  app.get('/', { preHandler: [checkSessionIdExistsMiddleware] }, async (request) => {
+    const { sessionId } = request.cookies;
+
+    const transactions = await database('transactions')
+      .select('*')
+      .where({ session_id: sessionId });
 
     return { transactions };
   });
 
   // List summary
-  app.get('/summary', async () => {
-    const summary = await database('transactions')
-      .sum('amount', { as: 'amount' })
-      .first();
+  app.get(
+    '/summary',
+    { preHandler: [checkSessionIdExistsMiddleware] },
+    async (request) => {
+      const { sessionId } = request.cookies;
 
-    return { summary };
-  });
+      const summary = await database('transactions')
+        .where({ session_id: sessionId })
+        .sum('amount', { as: 'amount' })
+        .first();
+
+      return { summary };
+    },
+  );
 
   // List by id
-  app.get('/:id', async (request) => {
-    const { id } = listTransactionParamsSchema.parse(request.params);
+  app.get(
+    '/:id',
+    { preHandler: [checkSessionIdExistsMiddleware] },
+    async (request) => {
+      const { id } = listTransactionParamsSchema.parse(request.params);
+      const { sessionId } = request.cookies;
 
-    const transaction = await database('transactions')
-      .select('*')
-      .where({ id })
-      .first();
+      const transaction = await database('transactions')
+        .select('*')
+        .where({ id, session_id: sessionId })
+        .first();
 
-    return { transaction };
-  });
+      return { transaction };
+    },
+  );
 
   // Create
   app.post('/', async (request, reply) => {
     const { title, amount, type } = createTransactionBodySchema.parse(request.body);
 
-    let sessionId = request.cookies.sessionId;
+    let { sessionId } = request.cookies;
 
     if (!sessionId) {
       sessionId = randomUUID();
 
       reply.cookie('sessionId', sessionId, {
-        path: '/',
         maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: '/',
       });
     }
 
