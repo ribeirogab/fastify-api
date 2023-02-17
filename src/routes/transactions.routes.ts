@@ -38,12 +38,24 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
   });
 
   // Create
-  app.post('/', async (request) => {
+  app.post('/', async (request, reply) => {
     const { title, amount, type } = createTransactionBodySchema.parse(request.body);
+
+    let sessionId = request.cookies.sessionId;
+
+    if (!sessionId) {
+      sessionId = randomUUID();
+
+      reply.cookie('sessionId', sessionId, {
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      });
+    }
 
     const [transaction] = await database('transactions')
       .insert({
         amount: type === 'credit' ? amount : amount * -1,
+        session_id: sessionId,
         id: randomUUID(),
         title,
       })
