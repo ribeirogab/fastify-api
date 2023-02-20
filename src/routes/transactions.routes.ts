@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { FastifyInstance } from 'fastify';
 
-import { database } from '../database';
+import { database } from '../configs';
 import { checkSessionIdExistsMiddleware } from '../middlewares';
 import {
   CreateTransactionParsedBody,
