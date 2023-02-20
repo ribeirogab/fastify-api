@@ -1,5 +1,7 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { get } from 'env-var';
+
+config({ path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env' });
 
 export const env = {
   NODE_ENV: get('NODE_ENV').required().asEnum(['production', 'development', 'test']),
