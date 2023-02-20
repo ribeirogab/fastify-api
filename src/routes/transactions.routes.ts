@@ -5,9 +5,9 @@ import { FastifyInstance } from 'fastify';
 import { database } from '../database';
 import { checkSessionIdExistsMiddleware } from '../middlewares';
 import {
-  createTransactionBodySchema,
-  listTransactionParamsSchema,
-} from '../schemas/transactions';
+  CreateTransactionParsedBody,
+  createTransactionValidator,
+} from '../validators';
 
 export const transactionsRoutes = async (app: FastifyInstance) => {
   // List all
@@ -42,7 +42,7 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
     '/:id',
     { preHandler: [checkSessionIdExistsMiddleware] },
     async (request, reply) => {
-      const { id } = listTransactionParamsSchema.parse(request.params);
+      const { id } = request.params as { id: string };
       const { sessionId } = request.cookies;
 
       const transaction = await database('transactions')
@@ -59,29 +59,33 @@ export const transactionsRoutes = async (app: FastifyInstance) => {
   );
 
   // Create
-  app.post('/', async (request, reply) => {
-    const { title, amount, type } = createTransactionBodySchema.parse(request.body);
+  app.post(
+    '/',
+    { preHandler: [createTransactionValidator] },
+    async (request, reply) => {
+      const { title, amount, type } = request.body as CreateTransactionParsedBody;
 
-    let { sessionId } = request.cookies;
+      let { sessionId } = request.cookies;
 
-    if (!sessionId) {
-      sessionId = randomUUID();
+      if (!sessionId) {
+        sessionId = randomUUID();
 
-      reply.cookie('sessionId', sessionId, {
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-        path: '/',
-      });
-    }
+        reply.cookie('sessionId', sessionId, {
+          maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+          path: '/',
+        });
+      }
 
-    const [transaction] = await database('transactions')
-      .insert({
-        amount: type === 'credit' ? amount : amount * -1,
-        session_id: sessionId,
-        id: randomUUID(),
-        title,
-      })
-      .returning('*');
+      const [transaction] = await database('transactions')
+        .insert({
+          amount: type === 'credit' ? amount : amount * -1,
+          session_id: sessionId,
+          id: randomUUID(),
+          title,
+        })
+        .returning('*');
 
-    return { transaction };
-  });
+      return { transaction };
+    },
+  );
 };
